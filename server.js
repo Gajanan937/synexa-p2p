@@ -9,7 +9,6 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const socketMap = {};
 const roomSenders = {};
 
 io.on('connection', (socket) => {
@@ -34,7 +33,6 @@ io.on('connection', (socket) => {
         }
 
         socket.join(roomId);
-        socketMap[socket.id] = { roomId, name: userInfo.name };
         console.log(`✅ User joined room ${roomId}:`, userInfo);
 
         io.to(roomId).emit('peer-joined', { socketId: socket.id, userInfo });
@@ -45,11 +43,6 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('🔴 User disconnected:', socket.id);
-        const userInfo = socketMap[socket.id];
-        if (userInfo) {
-            io.to(userInfo.roomId).emit('peer-left', { socketId: socket.id, name: userInfo.name });
-            delete socketMap[socket.id];
-        }
     });
 });
 

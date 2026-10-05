@@ -51,6 +51,7 @@ let receiveBuffer = [];
 let receivedSize = 0;
 let currentEncryptionKey = null;
 
+// --- WEB CRYPTO API FUNCTIONS (E2EE) ---
 async function generateEncryptionKey() {
     return await window.crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
@@ -104,6 +105,7 @@ async function decryptChunk(key, combinedBuffer) {
         encrypted
     );
 }
+// ----------------------------------------
 
 function addToSenderHistory(filename, fileSize) {
     if (historyPanel) historyPanel.classList.remove('hidden');
@@ -182,7 +184,7 @@ window.addEventListener('DOMContentLoaded', () => {
         receiverUi.classList.remove('hidden');
         joinCodeInput.value = autoRoom;
         statusBox.classList.remove('hidden');
-        statusText.innerText = `QR Scanned! Room ${autoRoom} detected. Apna naam daal kar Join karein.`;
+        statusText.innerText = `Room ${autoRoom} detected. Apna naam daal kar Join karein.`;
         leaveBtn.classList.remove('hidden');
     }
 });
@@ -201,7 +203,6 @@ senderBtn.addEventListener('click', () => {
 
     peer.on('open', (id) => {
         socket.emit('create-room', { roomCode, peerId: id });
-
         const joinUrl = window.location.href.split('?')[0] + "?room=" + roomCode;
         document.getElementById("qrcode").innerHTML = "";
         new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 160, height: 160 });
@@ -221,30 +222,9 @@ senderBtn.addEventListener('click', () => {
     });
 
     socket.on('peer-joined', (data) => {
-        showActivityLog(`🟢 ${data.userInfo.name} joined the room!`);
-    });
-
-    socket.on('peer-left', (data) => {
-        showActivityLog(`🔴 ${data.name} left the room.`);
-        Object.keys(connectedPeers).forEach(key => {
-            if (connectedPeers[key].socketId === data.socketId) {
-                delete connectedPeers[key];
-            }
-        });
-        renderPeerList();
+        statusText.innerText = `${data.userInfo.name} joined the room! 🟢`;
     });
 });
-
-function showActivityLog(msg) {
-    statusBox.classList.remove('hidden');
-    statusText.innerText = msg;
-    leaveBtn.classList.remove('hidden');
-    setTimeout(() => {
-        if (statusText.innerText === msg) {
-            statusText.innerText = "Ready for transfer...";
-        }
-    }, 4000);
-}
 
 receiverBtn.addEventListener('click', () => {
     roleSelection.classList.add('hidden');
@@ -316,13 +296,13 @@ qrFileInput.addEventListener('change', (e) => {
                         leaveBtn.classList.remove('hidden');
                         socket.emit('join-room', { roomId: roomCode, userInfo: myUserInfo });
                     } else {
-                        alert("Invalid QR code! Sahi SYNEXA QR image select karein.");
+                        alert("Invalid QR code!");
                     }
                 } catch (err) {
                     alert("QR link read nahi ho payi!");
                 }
             } else {
-                alert("QR Code detect nahi hua! Saaf image select karein.");
+                alert("QR Code detect nahi hua!");
             }
         };
         img.src = event.target.result;
@@ -335,7 +315,7 @@ socket.on('room-joined-success', (data) => {
 
     receiverUi.classList.add('hidden');
     statusBox.classList.remove('hidden');
-    statusText.innerText = "Joined Room! Connecting to sender... 🟢";
+    statusText.innerText = "Joined Room! Connecting P2P... 🟢";
     leaveBtn.classList.remove('hidden');
 
     peer = new Peer(peerConfig);
@@ -485,7 +465,7 @@ fileInput.addEventListener('change', async (e) => {
 
     for (const cb of checkboxes) {
         const peerId = cb.value;
-        const conn = connectedPeers[cb.value].conn;
+        const conn = connectedPeers[peerId].conn;
 
         conn.send({
             type: 'header',
