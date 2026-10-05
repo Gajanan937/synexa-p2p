@@ -455,6 +455,17 @@ fileInput.addEventListener('change', async (e) => {
     const checkboxes = document.querySelectorAll('.peer-checkbox:checked');
     if (!file || checkboxes.length === 0) return;
 
+    // --- CONNECTION OPEN CHECK (FIXES 0% STALL) ---
+    for (const cb of checkboxes) {
+        const peerId = cb.value;
+        const conn = connectedPeers[peerId]?.conn;
+        if (!conn || !conn.open) {
+            alert("Connection abhi open ho raha hai! Kripya 1 second wait karke dobara file select karein.");
+            return;
+        }
+    }
+    // ----------------------------------------------
+
     statusBox.classList.remove('hidden');
     statusText.innerText = `Encrypting & Sending to ${checkboxes.length} device(s)... 🔒`;
 
