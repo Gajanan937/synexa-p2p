@@ -9,15 +9,15 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const roomSenders = {};
+const socketMap = {};
 
 io.on('connection', (socket) => {
     console.log('🟢 User connected:', socket.id);
 
-    socket.on('create-room', ({ roomCode, peerId }) => {
-        socket.join(roomCode);
-        roomSenders[roomCode] = peerId;
-        console.log(`🏠 Room created: ${roomCode} with Peer ID: ${peerId}`);
+    // Simple room creation
+    socket.on('create-room', (roomId) => {
+        socket.join(roomId);
+        console.log(`🏠 Room created: ${roomId}`);
     });
 
     socket.on('join-room', (data) => {
@@ -28,21 +28,25 @@ io.on('connection', (socket) => {
         const roomSize = room ? room.size : 0;
 
         if (roomSize >= 20) {
-            socket.emit('room-error', 'Room is full! Maximum 20 devices allowed.');
+            socket.emit('room-error', 'Room is full!');
             return;
         }
 
         socket.join(roomId);
+        socketMap[socket.id] = { roomId, name: userInfo.name };
         console.log(`✅ User joined room ${roomId}:`, userInfo);
 
         io.to(roomId).emit('peer-joined', { socketId: socket.id, userInfo });
-
-        const senderPeerId = roomSenders[roomId];
-        socket.emit('room-joined-success', { roomId, senderPeerId });
+        socket.emit('room-joined-success', roomId);
     });
 
     socket.on('disconnect', () => {
         console.log('🔴 User disconnected:', socket.id);
+        const userInfo = socketMap[socket.id];
+        if (userInfo) {
+            io.to(userInfo.roomId).emit('peer-left', { socketId: socket.id, name: userInfo.name });
+            delete socketMap[socket.id];
+        }
     });
 });
 
