@@ -4,6 +4,17 @@ let roomCode;
 let connectedPeers = {};
 let myUserInfo = {};
 
+// --- STUN SERVERS FOR CROSS-NETWORK (MOBILE DATA & WIFI) P2P CONNECTION ---
+const peerConfig = {
+    config: {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+        ]
+    }
+};
+
 const senderBtn = document.getElementById('sender-btn');
 const receiverBtn = document.getElementById('receiver-btn');
 const roleSelection = document.getElementById('role-selection');
@@ -195,7 +206,7 @@ senderBtn.addEventListener('click', () => {
     document.getElementById("qrcode").innerHTML = "";
     new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 160, height: 160 });
 
-    peer = new Peer('sender-' + roomCode);
+    peer = new Peer('sender-' + roomCode, peerConfig);
 
     peer.on('connection', (conn) => {
         conn.on('data', (data) => {
@@ -322,7 +333,7 @@ socket.on('room-joined-success', (roomId) => {
     statusText.innerText = "Joined Room! Connected & waiting for files... 🟢";
     leaveBtn.classList.remove('hidden');
 
-    peer = new Peer();
+    peer = new Peer(peerConfig);
     peer.on('open', (id) => {
         const conn = peer.connect('sender-' + roomId);
 
@@ -469,7 +480,7 @@ fileInput.addEventListener('change', async (e) => {
 
     for (const cb of checkboxes) {
         const peerId = cb.value;
-        const conn = connectedPeers[peerId].conn;
+        const conn = connectedPeers[cb.value].conn;
 
         conn.send({
             type: 'header',
