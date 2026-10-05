@@ -36,7 +36,14 @@ const fileThumbnail = document.getElementById('file-thumbnail');
 const historyPanel = document.getElementById('history-panel');
 const historyList = document.getElementById('history-list');
 
-const peerConfig = { host: window.location.hostname, port: 3000, path: '/peerjs' };
+// --- FIXED PEER CONFIG FOR RENDER & LOCALHOST ---
+const peerConfig = {
+    host: window.location.hostname,
+    port: window.location.port ? window.location.port : (window.location.protocol === 'https:' ? 443 : 3000),
+    path: '/peerjs',
+    secure: window.location.protocol === 'https:'
+};
+// ------------------------------------------------
 
 let startTime;
 let incomingFileInfo = {};
@@ -368,7 +375,6 @@ socket.on('room-joined-success', (roomId) => {
                 progressBar.innerText = "100%";
                 progressBar.classList.add('bg-emerald-500');
 
-                // Fallback ensure karega ki agar fileType missing ho toh octet-stream bane
                 const blob = new Blob(receiveBuffer, { type: incomingFileInfo.fileType || 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 addToReceiverHistoryWithActions(incomingFileInfo.filename, incomingFileInfo.size, url);
@@ -465,7 +471,6 @@ fileInput.addEventListener('change', async (e) => {
         const peerId = cb.value;
         const conn = connectedPeers[peerId].conn;
 
-        // fileType mein fallback add kar diya hai
         conn.send({
             type: 'header',
             filename: file.name,
