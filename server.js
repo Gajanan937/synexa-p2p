@@ -10,13 +10,15 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 const socketMap = {};
+const roomSenders = {};
 
 io.on('connection', (socket) => {
     console.log('🟢 User connected:', socket.id);
 
-    socket.on('create-room', (roomId) => {
-        socket.join(roomId);
-        console.log(`🏠 Room created: ${roomId}`);
+    socket.on('create-room', ({ roomCode, peerId }) => {
+        socket.join(roomCode);
+        roomSenders[roomCode] = peerId;
+        console.log(`🏠 Room created: ${roomCode} with Peer ID: ${peerId}`);
     });
 
     socket.on('join-room', (data) => {
@@ -36,7 +38,9 @@ io.on('connection', (socket) => {
         console.log(`✅ User joined room ${roomId}:`, userInfo);
 
         io.to(roomId).emit('peer-joined', { socketId: socket.id, userInfo });
-        socket.emit('room-joined-success', roomId);
+
+        const senderPeerId = roomSenders[roomId];
+        socket.emit('room-joined-success', { roomId, senderPeerId });
     });
 
     socket.on('disconnect', () => {

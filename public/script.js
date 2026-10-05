@@ -4,13 +4,11 @@ let roomCode;
 let connectedPeers = {};
 let myUserInfo = {};
 
-// --- STUN SERVERS FOR CROSS-NETWORK (MOBILE DATA & WIFI) P2P CONNECTION ---
 const peerConfig = {
     config: {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
+            { urls: 'stun:stun1.l.google.com:19302' }
         ]
     }
 };
@@ -53,7 +51,6 @@ let receiveBuffer = [];
 let receivedSize = 0;
 let currentEncryptionKey = null;
 
-// --- WEB CRYPTO API FUNCTIONS (E2EE) ---
 async function generateEncryptionKey() {
     return await window.crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
@@ -107,7 +104,6 @@ async function decryptChunk(key, combinedBuffer) {
         encrypted
     );
 }
-// ----------------------------------------
 
 function addToSenderHistory(filename, fileSize) {
     if (historyPanel) historyPanel.classList.remove('hidden');
@@ -200,13 +196,16 @@ senderBtn.addEventListener('click', () => {
 
     roomCode = Math.floor(1000 + Math.random() * 9000).toString();
     roomCodeDisplay.innerText = roomCode;
-    socket.emit('create-room', roomCode);
 
-    const joinUrl = window.location.href.split('?')[0] + "?room=" + roomCode;
-    document.getElementById("qrcode").innerHTML = "";
-    new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 160, height: 160 });
+    peer = new Peer(peerConfig);
 
-    peer = new Peer('sender-' + roomCode, peerConfig);
+    peer.on('open', (id) => {
+        socket.emit('create-room', { roomCode, peerId: id });
+
+        const joinUrl = window.location.href.split('?')[0] + "?room=" + roomCode;
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 160, height: 160 });
+    });
 
     peer.on('connection', (conn) => {
         conn.on('data', (data) => {
@@ -214,6 +213,10 @@ senderBtn.addEventListener('click', () => {
                 connectedPeers[conn.peer] = { conn, info: data.userInfo, socketId: data.socketId };
                 renderPeerList();
             }
+        });
+        conn.on('close', () => {
+            delete connectedPeers[conn.peer];
+            renderPeerList();
         });
     });
 
@@ -327,15 +330,17 @@ qrFileInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-socket.on('room-joined-success', (roomId) => {
+socket.on('room-joined-success', (data) => {
+    const senderPeerId = typeof data === 'object' ? data.senderPeerId : data;
+
     receiverUi.classList.add('hidden');
     statusBox.classList.remove('hidden');
-    statusText.innerText = "Joined Room! Connected & waiting for files... 🟢";
+    statusText.innerText = "Joined Room! Connecting to sender... 🟢";
     leaveBtn.classList.remove('hidden');
 
     peer = new Peer(peerConfig);
     peer.on('open', (id) => {
-        const conn = peer.connect('sender-' + roomId);
+        const conn = peer.connect(senderPeerId);
 
         conn.on('open', () => {
             statusText.innerText = "Connected! Waiting for files... 🟢";
