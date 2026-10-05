@@ -37,12 +37,9 @@ const historyPanel = document.getElementById('history-panel');
 const historyList = document.getElementById('history-list');
 
 // --- FIXED PEER CONFIG FOR RENDER & LOCALHOST ---
-const peerConfig = {
-    host: window.location.hostname,
-    port: window.location.port ? window.location.port : (window.location.protocol === 'https:' ? 443 : 3000),
-    path: '/peerjs',
-    secure: window.location.protocol === 'https:'
-};
+const peerConfig = window.location.protocol === 'https:'
+    ? { host: window.location.hostname, secure: true, path: '/peerjs' }
+    : { host: window.location.hostname, port: 3000, path: '/peerjs' };
 // ------------------------------------------------
 
 let startTime;
