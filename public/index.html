@@ -4,136 +4,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYNEXA - Fast P2P File Sharing</title>
-    <!-- Tailwind CSS (Agar aapne npm se install kiya hai toh ise hata sakte hain) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>SYNEXA - Modern P2P File Dropper</title>
+
+    <!-- Tailwind CSS v4 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon.png">
+    <meta name="theme-color" content="#1CDBCB">
 </head>
 
-<body class="bg-gray-950 text-white font-sans antialiased scroll-smooth">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-teal-400 selection:text-slate-950">
 
-    <!-- ==========================================
-         APP MAIN UI (AAPKA PEHLA CODE)
-    =========================================== -->
-    <main class="min-h-screen p-6">
+    <!-- Main App Content Container -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div
+            class="w-full max-w-md mx-auto bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
 
-        <!-- ⬇️ AAPKA EXISTING CODE YAHAN SE SHURU HOGA ⬇️ -->
+            <!-- Header Section -->
+            <div class="flex items-center justify-center space-x-3 pb-4 border-b border-slate-800/80">
+                <img src="icon.png" alt="SYNEXA Logo" class="w-10 h-10 object-contain rounded-xl shadow-md">
+                <h1
+                    class="text-2xl font-black tracking-wider bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">
+                    SYNEXA</h1>
+            </div>
 
-        <div class="text-center mt-10 mb-20">
-            <h1
-                class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500 mb-4">
-                SYNEXA</h1>
-            <p class="text-gray-400">Peer-to-Peer Secure File Sharing</p>
+            <!-- Role Selection -->
+            <div id="role-selection" class="grid grid-cols-2 gap-4">
+                <button id="sender-btn"
+                    class="w-full bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-teal-500/20 transition-all duration-200 cursor-pointer active:scale-95 text-sm md:text-base">I
+                    want to Send</button>
+                <button id="receiver-btn"
+                    class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3.5 px-4 rounded-2xl border border-slate-700/60 transition-all duration-200 cursor-pointer active:scale-95 text-sm md:text-base">I
+                    want to Receive</button>
+            </div>
 
-            <!-- Aapka File Input, Progress Bar, Status Box aur Room History yahan aayega -->
+            <!-- Sender UI Panel -->
+            <div id="sender-ui" class="hidden space-y-4">
+                <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 text-center space-y-2">
+                    <h2 class="text-sm font-medium text-slate-400">Room Code</h2>
+                    <div id="room-code" class="text-3xl font-mono font-bold tracking-widest text-teal-400">----</div>
+                    <p class="text-xs text-slate-500">Connected Devices (Max 20): <span id="device-count"
+                            class="text-slate-300 font-semibold">0</span>/20</p>
+                </div>
 
+                <div id="qrcode"
+                    class="flex justify-center items-center bg-white p-4 rounded-2xl shadow-inner my-4 max-w-[180px] mx-auto border-4 border-slate-800">
+                </div>
+
+                <div id="peers-container" class="hidden space-y-3">
+                    <h3 class="text-sm font-semibold text-slate-300">Select Receivers:</h3>
+                    <div id="peer-list" class="space-y-2"></div>
+
+                    <div id="drop-zone"
+                        class="hidden border-2 border-dashed border-slate-700 hover:border-teal-400 rounded-2xl p-6 text-center cursor-pointer transition-all bg-slate-950/40 hover:bg-slate-950/80 group">
+                        <p class="text-slate-300 text-sm group-hover:text-teal-300 transition-colors">📂 Click here to
+                            select file<br><span class="text-xs text-slate-500">or Drag & Drop</span></p>
+                        <input type="file" id="file-input" hidden>
+                    </div>
+
+                    <!-- File Preview Container -->
+                    <div id="file-preview-container"
+                        class="hidden mt-3 p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center space-x-3">
+                        <div id="file-thumbnail"
+                            class="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden text-teal-400 font-bold text-xs shrink-0 border border-slate-800">
+                            FILE</div>
+                        <div class="flex-1 min-w-0 text-left">
+                            <p id="preview-filename" class="text-xs font-semibold text-slate-200 truncate">filename.ext
+                            </p>
+                            <p id="preview-filesize" class="text-[10px] text-slate-500">0 MB</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Receiver UI Panel -->
+            <div id="receiver-ui" class="hidden space-y-4">
+                <h2 class="text-base font-semibold text-slate-300 text-center">Join Room</h2>
+                <input type="text" id="rec-name" placeholder="Enter Your Name"
+                    class="w-full bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 rounded-xl px-4 py-3.5 focus:outline-none focus:border-teal-400 transition-all text-sm">
+
+                <input type="text" id="join-code-input" placeholder="Room Code (e.g. 4199)" maxlength="4"
+                    class="w-full bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 rounded-xl px-4 py-3.5 focus:outline-none focus:border-teal-400 transition-all text-center tracking-widest text-xl font-mono">
+                <button id="join-btn"
+                    class="w-full bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-teal-500/20 transition-all duration-200 cursor-pointer active:scale-95">Join
+                    Room</button>
+
+                <div
+                    class="flex items-center my-4 text-slate-600 text-xs tracking-wider uppercase before:flex-1 before:border-t before:border-slate-800 before:mr-3 after:flex-1 after:border-t after:border-slate-800 after:ml-3">
+                    OR</div>
+
+                <button id="upload-qr-btn"
+                    class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-3 px-4 rounded-xl border border-slate-700/60 transition-all duration-200 cursor-pointer text-sm">📁
+                    Upload QR Code Image</button>
+                <input type="file" id="qr-file-input" accept="image/*" hidden>
+            </div>
+
+            <!-- Status & Progress Box -->
+            <div id="status-box" class="hidden space-y-3 bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                <p id="status-text" class="text-sm font-medium text-teal-400 text-center animate-pulse">Connecting...
+                </p>
+
+                <div class="w-full bg-slate-950 rounded-full h-3.5 overflow-hidden border border-slate-800"
+                    id="progress-container">
+                    <div class="bg-gradient-to-r from-teal-500 to-cyan-400 h-full text-[10px] font-bold text-slate-950 flex items-center justify-center transition-all duration-300 rounded-full"
+                        id="progress-bar" style="width: 0%;">0%</div>
+                </div>
+
+                <p id="speed-info" class="hidden text-xs text-slate-400 text-center font-mono"></p>
+
+                <!-- Leave Room Button -->
+                <button id="leave-btn"
+                    class="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-medium py-2.5 px-4 rounded-xl transition-all duration-200 cursor-pointer text-sm hidden">Leave
+                    Room</button>
+            </div>
+
+            <!-- Transfer History Panel -->
+            <div id="history-panel"
+                class="hidden space-y-2 mt-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider text-left">📁 Room Transfer
+                    History
+                </h3>
+                <div id="history-list" class="space-y-2 max-h-40 overflow-y-auto text-left"></div>
+            </div>
         </div>
-
-        <!-- ⬆️ AAPKA EXISTING CODE YAHAN KHATAM HOGA ⬆️ -->
-
     </main>
 
-    <!-- ==========================================
-         QUICK LINKS NAVIGATION
-    =========================================== -->
-    <div class="bg-gray-900 border-t border-gray-800 py-6 text-center">
-        <div class="flex flex-wrap justify-center gap-6 text-sm font-medium text-gray-400">
-            <a href="#tech-support" class="hover:text-indigo-400 transition">🛠️ Tech Support Center</a>
-            <a href="#privacy-policy" class="hover:text-indigo-400 transition">🔒 Privacy Policy</a>
-            <a href="#about-founder" class="hover:text-indigo-400 transition">ℹ️ About Founder</a>
-        </div>
-    </div>
+    <!-- Professional 3-Column Corporate Footer -->
+    <footer class="bg-slate-900/80 border-t border-slate-800/80 mt-auto backdrop-blur-md w-full">
+        <div class="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
 
-    <!-- ==========================================
-         PRIVACY POLICY
-    =========================================== -->
-    <section id="privacy-policy" class="py-12 bg-gray-900 text-gray-300">
-        <div class="max-w-4xl mx-auto px-6 text-center">
-            <h2 class="text-3xl font-bold text-white mb-6">🔒 Privacy Policy</h2>
-            <div class="bg-gray-800 p-6 rounded-xl text-left border border-gray-700">
-                <p class="mb-4 text-lg">Your privacy is our highest priority. SYNEXA is built on trust and modern P2P
-                    technology.</p>
-                <ul class="list-disc pl-5 space-y-3">
-                    <li><strong>No Cloud Storage:</strong> We do not store, host, or see your files. Your data never
-                        touches our servers.</li>
-                    <li><strong>Direct Transfer:</strong> Files are transferred directly between your browser and the
-                        receiver's browser using WebRTC.</li>
-                    <li><strong>Connection Only:</strong> Our server is only used to connect the two devices initially.
-                        Once connected, the server steps out of the way.</li>
+            <!-- Column 1: About SYNEXA -->
+            <div class="space-y-4">
+                <h3 class="text-teal-400 font-bold text-lg tracking-wide uppercase text-sm">About SYNEXA</h3>
+                <p class="text-slate-400 text-sm leading-relaxed pr-4">
+                    No servers. No limits. Just seamless P2P file dropping. SYNEXA empowers you to move data instantly
+                    and securely across any network.
+                </p>
+                <a href="about.html"
+                    class="inline-block text-teal-400 hover:text-teal-300 text-sm font-semibold transition-colors mt-2">
+                    Read Full Story &rarr;
+                </a>
+            </div>
+
+            <!-- Column 2: Quick Links (Support & Policy) -->
+            <div class="space-y-4">
+                <h3 class="text-teal-400 font-bold text-lg tracking-wide uppercase text-sm">Quick Links</h3>
+                <ul class="text-slate-400 text-sm space-y-3 flex flex-col">
+                    <li>
+                        <a href="support.html" class="hover:text-teal-300 transition-colors flex items-center gap-2">
+                            <span>🛠️</span> Tech Support Center
+                        </a>
+                    </li>
+                    <li>
+                        <a href="privacy.html" class="hover:text-teal-300 transition-colors flex items-center gap-2">
+                            <span>🔒</span> Privacy Policy
+                        </a>
+                    </li>
+                    <li>
+                        <a href="about.html" class="hover:text-teal-300 transition-colors flex items-center gap-2">
+                            <span>ℹ️</span> About Founder
+                        </a>
+                    </li>
                 </ul>
             </div>
-        </div>
-    </section>
 
-    <!-- ==========================================
-         TECH SUPPORT & FAQS
-    =========================================== -->
-    <section id="tech-support" class="py-12 bg-gray-800 text-gray-300">
-        <div class="max-w-4xl mx-auto px-6">
-            <h2 class="text-3xl font-bold text-white mb-8 text-center">🛠️ Tech Support Center</h2>
+            <!-- Column 3: Contact Details -->
             <div class="space-y-4">
-                <div class="bg-gray-700 p-5 rounded-lg border border-gray-600">
-                    <h3 class="text-xl font-semibold text-indigo-400 mb-2">Q: What is the maximum file size?</h3>
-                    <p>A: Since SYNEXA is a P2P platform, there is technically <strong>no file size limit</strong>!
-                        However, very large files (e.g., 5GB+) might depend on your browser's available RAM and internet
-                        stability.</p>
-                </div>
-                <div class="bg-gray-700 p-5 rounded-lg border border-gray-600">
-                    <h3 class="text-xl font-semibold text-indigo-400 mb-2">Q: Why is my transfer stuck at 99%?</h3>
-                    <p>A: When a transfer reaches 99%, your browser is assembling all the chunks back into a single
-                        file. For large files, this takes a few extra seconds. Just wait a moment, and the download
-                        button will appear.</p>
-                </div>
-                <div class="bg-gray-700 p-5 rounded-lg border border-gray-600">
-                    <h3 class="text-xl font-semibold text-indigo-400 mb-2">Q: Does SYNEXA work on mobile browsers?</h3>
-                    <p>A: Yes! SYNEXA works smoothly on modern mobile browsers. Just make sure you keep the browser tab
-                        open and your phone screen awake during the transfer.</p>
-                </div>
+                <h3 class="text-teal-400 font-bold text-lg tracking-wide uppercase text-sm">Contact Us</h3>
+                <ul class="text-slate-400 text-sm space-y-3">
+                    <li class="flex items-center gap-2">
+                        <span>📧</span>
+                        <a href="mailto:gajananyadav121@gmail.com"
+                            class="hover:text-teal-300 transition-colors truncate">gajananyadav121@gmail.com</a>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span>📞</span>
+                        <a href="tel:+918208897418" class="hover:text-teal-300 transition-colors">+91 8208897418</a>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span>🌐</span>
+                        <a href="https://synexa-p2p.onrender.com/" target="_blank"
+                            class="hover:text-teal-300 transition-colors">synexa-p2p.onrender.com</a>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span>📍</span> Solapur, Maharashtra, India
+                    </li>
+                </ul>
             </div>
-        </div>
-    </section>
 
-    <!-- ==========================================
-         ABOUT FOUNDER
-    =========================================== -->
-    <section id="about-founder" class="py-16 bg-gray-900">
-        <div class="max-w-3xl mx-auto px-6 text-center">
-            <div class="inline-block p-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 mb-4">
-                <!-- Aap apni real photo yahan src mein daal sakte hain -->
-                <img src="your-photo.jpg" alt="Gajanan Yadav"
-                    class="w-24 h-24 rounded-full border-4 border-gray-900 object-cover"
-                    onerror="this.src='https://ui-avatars.com/api/?name=Gajanan+Yadav&background=4f46e5&color=fff&size=150'">
-            </div>
-            <h2 class="text-3xl font-bold text-white mb-1">ℹ️ About the Founder</h2>
-            <h3 class="text-2xl text-indigo-400 font-semibold mb-6">Gajanan Yadav</h3>
-            <p
-                class="text-gray-300 leading-relaxed bg-gray-800 p-6 rounded-xl border border-gray-700 text-left md:text-center">
-                Hi, I'm Gajanan Yadav, the creator of SYNEXA. I built this platform because I was tired of waiting for
-                slow uploads to third-party cloud servers just to share a file. My vision with SYNEXA is to provide a
-                lightning-fast, secure, and hassle-free peer-to-peer file sharing experience without any limits.
+        </div>
+
+        <!-- Copyright Bar -->
+        <div class="bg-slate-950 py-4 text-center border-t border-slate-800/80">
+            <p class="text-slate-500 text-xs tracking-wider">
+                &copy; 2026 SYNEXA. All Rights Reserved.
             </p>
-        </div>
-    </section>
-
-    <!-- ==========================================
-         CONTACT US & FOOTER
-    =========================================== -->
-    <footer id="contact-us" class="py-10 bg-gray-950 border-t border-gray-800 text-center">
-        <div class="max-w-2xl mx-auto px-6">
-            <h2 class="text-2xl font-bold text-white mb-6">📞 Contact Us</h2>
-            <div class="flex flex-col sm:flex-row justify-center items-center gap-6 text-gray-400 mb-8">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">📧</span>
-                    <a href="mailto:support@synexa.com" class="hover:text-indigo-400 transition">support@synexa.com</a>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">📍</span>
-                    <span>Maharashtra, India</span>
-                </div>
-            </div>
-            <p class="text-sm text-gray-600">&copy; 2026 SYNEXA. All rights reserved. Developed by Gajanan Yadav.</p>
         </div>
     </footer>
 
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="script.js"></script>
 </body>
 
 </html>
